@@ -52,6 +52,92 @@ class TreeManager
     }
 
     /**
+     * @param array $data
+     * @return Tree
+     */
+    private function mapDataToTree($data)
+    {
+        $root = $this->mapDataToNode($data[0]);
+        $tree = new Tree($root);
+        $tree->addToIndex($root);
+        unset($data[0]);
+
+        foreach ($data as $nodeData) {
+            $node = $this->mapDataToNode($nodeData);
+            $parent = $tree->findById($node->parentId);
+            $tree->addNode($node, $parent);
+            $tree->addToIndex($node);
+        }
+
+        return $tree;
+    }
+
+    /**
+     * @param array $data
+     * @return Node
+     */
+    private function mapDataToNode($data)
+    {
+        $node = new Node();
+        $node->id = $data['id'];
+        $node->parentId = $data['parent_id'];
+        $node->position = $data['position'];
+        $node->path = $data['path'];
+        $node->level = $data['level'];
+        return $node;
+    }
+
+    /**
+     * @param int $id
+     * @return Tree
+     */
+    public function getChildrenById($id)
+    {
+        $path = $this->getPathById($id);
+
+        $sql = "SELECT * FROM nodes WHERE path LIKE :path ORDER BY path";
+        $statement = $this->connection->prepare($sql);
+        $statement->bindValue(':path', "{$path}%", \PDO::PARAM_STR);
+        $statement->execute();
+        $result = $statement->fetchAll(\PDO::FETCH_ASSOC);
+
+        return $this->mapDataToTree($result);
+    }
+
+    /**
+     * @param int $id
+     * @return Tree
+     */
+    public function getAncestorsById($id)
+    {
+        $path = $this->getPathById($id);
+        $ancestorsIds = explode('.', $path);
+        unset($ancestorsIds[count($ancestorsIds) - 1]);
+        $ancestorsIds = implode(',', $ancestorsIds);
+
+        $sql = "SELECT * FROM nodes WHERE id IN ({$ancestorsIds})
+                ORDER BY path";
+        $statement = $this->connection->prepare($sql);
+        $statement->execute();
+        $result = $statement->fetchAll(\PDO::FETCH_ASSOC);
+
+        return $this->mapDataToTree($result);
+    }
+
+    /**
+     * @param int $id
+     * @return string
+     */
+    private function getPathById($id)
+    {
+        $sql = "SELECT path FROM nodes WHERE id = :id";
+        $statement = $this->connection->prepare($sql);
+        $statement->bindValue(':id', $id, \PDO::PARAM_INT);
+        $statement->execute();
+        return $statement->fetchColumn();
+    }
+
+    /**
      * @param int $levels
      */
     public function setLevels($levels)
@@ -59,6 +145,9 @@ class TreeManager
         $this->levels = $levels;
     }
 
+    /**
+     * @return Node
+     */
     private function createRoot()
     {
         $root = new Node();

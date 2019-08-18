@@ -13,6 +13,11 @@ class Tree
     private $root;
 
     /**
+     * @var array
+     */
+    private $index;
+
+    /**
      * Tree constructor.
      * @param Node $root
      */
@@ -31,12 +36,29 @@ class Tree
     {
         $node->parent = $parent;
 
-        if ($node->position === Node::POS_LEFT) {
+        if ($node->position == Node::POS_LEFT) {
             $parent->left = $node;
         } else {
             $parent->right = $node;
         }
 
         return $node;
+    }
+
+    /**
+     * @param Node $node
+     */
+    public function addToIndex($node)
+    {
+        $this->index[$node->id] = $node;
+    }
+
+    /**
+     * @param int $id
+     * @return Node|null
+     */
+    public function findById($id)
+    {
+        return $this->index[$id] ?? null;
     }
 }
