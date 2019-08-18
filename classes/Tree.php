@@ -61,4 +61,12 @@ class Tree
     {
         return $this->index[$id] ?? null;
     }
+
+    /**
+     * @return Node
+     */
+    public function getRoot()
+    {
+        return $this->root;
+    }
 }

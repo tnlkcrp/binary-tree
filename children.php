@@ -5,4 +5,5 @@ use binary\TreeManager;
 require 'bootstrap/bootstrap.php';
 
 $treeManager = new TreeManager($pdo);
-$treeManager->getChildrenById($argv[1]);
+$tree = $treeManager->getChildrenById($argv[1]);
+$treeManager->printTree($tree);

@@ -36,6 +36,7 @@ class TreeManager
 
     /**
      * Automatically generate tree.
+     * @return Tree
      */
     public function generate()
     {
@@ -49,6 +50,8 @@ class TreeManager
         if ($level <= $this->levels) {
             $this->makeChildren([$root], $level);
         }
+
+        return $this->tree;
     }
 
     /**
@@ -245,5 +248,29 @@ class TreeManager
         )";
 
         $this->connection->exec($sql);
+    }
+
+    /**
+     * @param Tree $tree
+     */
+    public function printTree(Tree $tree)
+    {
+        $node = $tree->getRoot();
+        $this->printNode($node, '');
+    }
+
+    /**
+     * @param Node $node
+     * @param string $margin
+     */
+    private function printNode(Node $node, $margin)
+    {
+        echo $margin . $node->id . "\n";
+        if ($node->left) {
+            $this->printNode($node->left, "  " . $margin);
+        }
+        if ($node->right) {
+            $this->printNode($node->right, "  " . $margin);
+        }
     }
 }
