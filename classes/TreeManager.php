@@ -42,7 +42,7 @@ class TreeManager
     {
         $root = $this->createRoot();
         $root->generatePath();
-        $this->updateNodePath($root);
+        $this->updateNode($root);
 
         $this->tree = new Tree($root);
 
@@ -128,6 +128,68 @@ class TreeManager
     }
 
     /**
+     * @param int $nodeId
+     * @param int $parentNodeId
+     * @param int $position
+     * @return Tree
+     */
+    public function move($nodeId, $parentNodeId, $position)
+    {
+        $parentTree = $this->getNodeById($parentNodeId);
+        $subtree = $this->getChildrenById($nodeId);
+        $subtreeRoot = $subtree->getRoot();
+        $subtreeRoot->position = $position;
+        $subtreeRoot->parentId = $parentTree->getRoot()->id;
+        $subtreeRoot->level = $parentTree->getRoot()->level + 1;
+        $subtreeRoot->generatePath($parentTree->getRoot()->path);
+        $this->updateNode($subtreeRoot);
+        $this->updateMovedChildren($subtreeRoot);
+
+        $parentTree->addNode(
+            $subtreeRoot,
+            $parentTree->getRoot()
+        );
+        $parentTree->mergeIndexes($subtree->getIndex());
+
+        return $parentTree;
+    }
+
+    /**
+     * @param Node $parentNode
+     */
+    private function updateMovedChildren(Node $parentNode)
+    {
+        if ($parentNode->left) {
+            $parentNode->left->generatePath($parentNode->path);
+            $parentNode->left->level = $parentNode->level + 1;
+            $this->updateNode($parentNode->left);
+            $this->updateMovedChildren($parentNode->left);
+        }
+
+        if ($parentNode->right) {
+            $parentNode->right->generatePath($parentNode->path);
+            $parentNode->right->level = $parentNode->level + 1;
+            $this->updateNode($parentNode->right);
+            $this->updateMovedChildren($parentNode->right);
+        }
+    }
+
+    /**
+     * @param int $id
+     * @return Tree
+     */
+    public function getNodeById($id)
+    {
+        $sql = "SELECT * FROM nodes WHERE id = :id";
+        $statement = $this->connection->prepare($sql);
+        $statement->bindValue(':id', $id, \PDO::PARAM_INT);
+        $statement->execute();
+        $result = $statement->fetchAll(\PDO::FETCH_ASSOC);
+
+        return $this->mapDataToTree($result);
+    }
+
+    /**
      * @param int $id
      * @return string
      */
@@ -194,7 +256,7 @@ class TreeManager
         $child->parentId = $parentNode->id;
         $this->insertNode($child);
         $child->generatePath($parentNode->path);
-        $this->updateNodePath($child);
+        $this->updateNode($child);
         $this->tree->addNode($child, $parentNode);
 
         return $child;
@@ -222,11 +284,19 @@ class TreeManager
     /**
      * @param Node $node
      */
-    private function updateNodePath(Node $node)
+    private function updateNode(Node $node)
     {
-        $sql = "UPDATE nodes SET path = :path WHERE id = :id";
+        $sql = "UPDATE nodes
+                SET path = :path,
+                    parent_id = :parent_id,
+                    position = :position,
+                    level = :level
+                WHERE id = :id";
         $statement = $this->connection->prepare($sql);
         $statement->bindValue(':path', $node->path, \PDO::PARAM_STR);
+        $statement->bindValue(':parent_id', $node->parentId, \PDO::PARAM_INT);
+        $statement->bindValue(':position', $node->position, \PDO::PARAM_INT);
+        $statement->bindValue(':level', $node->level, \PDO::PARAM_INT);
         $statement->bindValue(':id', $node->id, \PDO::PARAM_INT);
         $statement->execute();
     }
@@ -265,7 +335,7 @@ class TreeManager
      */
     private function printNode(Node $node, $margin)
     {
-        echo $margin . $node->id . "\n";
+        echo "{$margin}{$node->id} ({$node->path})\n";
         if ($node->left) {
             $this->printNode($node->left, "  " . $margin);
         }

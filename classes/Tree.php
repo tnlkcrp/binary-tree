@@ -54,6 +54,14 @@ class Tree
     }
 
     /**
+     * @param $subtreeIndex
+     */
+    public function mergeIndexes($subtreeIndex)
+    {
+        $this->index = array_merge($this->index, $subtreeIndex);
+    }
+
+    /**
      * @param int $id
      * @return Node|null
      */
@@ -68,5 +76,13 @@ class Tree
     public function getRoot()
     {
         return $this->root;
+    }
+
+    /**
+     * @return array
+     */
+    public function getIndex()
+    {
+        return $this->index;
     }
 }
