@@ -97,6 +97,10 @@ class TreeManager
     public function getChildrenById($id)
     {
         $path = $this->getPathById($id);
+        if (!$path) {
+            echo "Not found \n";
+            die;
+        }
 
         $sql = "SELECT * FROM nodes WHERE path LIKE :path ORDER BY path";
         $statement = $this->connection->prepare($sql);
@@ -114,6 +118,11 @@ class TreeManager
     public function getAncestorsById($id)
     {
         $path = $this->getPathById($id);
+        if (!$path) {
+            echo "Not found \n";
+            die;
+        }
+
         $ancestorsIds = explode('.', $path);
         unset($ancestorsIds[count($ancestorsIds) - 1]);
         $ancestorsIds = implode(',', $ancestorsIds);
@@ -136,6 +145,11 @@ class TreeManager
     public function move($nodeId, $parentNodeId, $position)
     {
         $parentTree = $this->getNodeById($parentNodeId);
+        if ($this->hasChildren($parentTree->getRoot())) {
+            echo "Node with id = {$parentNodeId} is not empty \n";
+            die;
+        }
+
         $subtree = $this->getChildrenById($nodeId);
         $subtreeRoot = $subtree->getRoot();
         $subtreeRoot->position = $position;
@@ -186,7 +200,25 @@ class TreeManager
         $statement->execute();
         $result = $statement->fetchAll(\PDO::FETCH_ASSOC);
 
+        if (empty($result)) {
+            echo "Node with id = {$id} not found \n";
+            die;
+        }
+
         return $this->mapDataToTree($result);
+    }
+
+    /**
+     * @param Node $node
+     * @return bool
+     */
+    private function hasChildren(Node $node)
+    {
+        $sql = "SELECT COUNT(*) FROM nodes WHERE parent_id = :id";
+        $statement = $this->connection->prepare($sql);
+        $statement->bindValue(':id', $node->id, \PDO::PARAM_INT);
+        $statement->execute();
+        return (boolean) $statement->fetchColumn();
     }
 
     /**

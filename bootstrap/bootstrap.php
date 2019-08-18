@@ -1,11 +1,18 @@
 <?php
 
 $config = require 'config.php';
-$pdo = new \PDO(
-    $config['db']['dsn'],
-    $config['db']['user'],
-    $config['db']['password']
-);
+
+try {
+    $pdo = new \PDO(
+        $config['db']['dsn'],
+        $config['db']['user'],
+        $config['db']['password']
+    );
+} catch (\Exception $e) {
+    echo "Database error, check config and connection to database.\n";
+    echo $e->getMessage() . "\n";
+    die;
+}
 
 spl_autoload_register(function ($class) {
     $nameParts = explode('\\', $class);
